@@ -30,7 +30,7 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
-    const model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+    const model = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
       {
@@ -48,7 +48,7 @@ app.post("/api/chat", async (req, res) => {
           ],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 1000,
+            maxOutputTokens: 13192,
           },
         }),
       },
@@ -66,6 +66,7 @@ app.post("/api/chat", async (req, res) => {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache, no-transform");
     res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
