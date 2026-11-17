@@ -79,7 +79,7 @@ function createNewChat() {
     id: "chat_" + Date.now(),
     title: "Obrolan baru",
     createdAt: Date.now(),
-    messages: []
+    messages: [],
   };
 
   chats.unshift(newChat);
@@ -386,10 +386,10 @@ async function handleSend() {
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ message: text }),
-      signal: currentAbortController.signal
+      signal: currentAbortController.signal,
     });
 
     if (!response.ok) {
@@ -428,7 +428,8 @@ async function handleSend() {
           const parsed = JSON.parse(dataStr);
           if (parsed.content) {
             accumulatedResponse += parsed.content;
-            body.innerHTML = renderMarkdown(accumulatedResponse) + '<span class="typing-cursor"></span>';
+            body.innerHTML =
+              renderMarkdown(accumulatedResponse) + '<span class="typing-cursor"></span>';
             scrollViewportToBottom();
           } else if (parsed.error) {
             throw new Error(parsed.error);
@@ -440,13 +441,17 @@ async function handleSend() {
     }
 
     // Finished stream normally
+    if (!accumulatedResponse.trim()) {
+      throw new Error("Respons AI kosong atau batas token habis saat berpikir.");
+    }
+
+    // Finished stream normally
     body.innerHTML = renderMarkdown(accumulatedResponse);
     currentChat.messages.push({ role: "gemini", content: accumulatedResponse });
     saveChatsToStorage();
 
     const actions = createMessageActions(accumulatedResponse, currentChat.messages.length - 1);
     wrapper.appendChild(actions);
-
   } catch (err) {
     if (err.name === "AbortError") {
       // Stopped by user
@@ -454,7 +459,9 @@ async function handleSend() {
         body.innerHTML = renderMarkdown(accumulatedResponse);
         currentChat.messages.push({ role: "gemini", content: accumulatedResponse });
         saveChatsToStorage();
-        wrapper.appendChild(createMessageActions(accumulatedResponse, currentChat.messages.length - 1));
+        wrapper.appendChild(
+          createMessageActions(accumulatedResponse, currentChat.messages.length - 1),
+        );
       } else {
         body.innerHTML = "<em>Generasi respons dihentikan.</em>";
       }
@@ -703,7 +710,7 @@ function renderMarkdown(md) {
     const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
     codeBlocks.push({
       lang: lang || "code",
-      code: escapeHtml(code.replace(/\n$/, ""))
+      code: escapeHtml(code.replace(/\n$/, "")),
     });
     return placeholder;
   });
