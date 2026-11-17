@@ -39,4 +39,19 @@ app.post("/api/chat", async (req, res) => {
           "Content-Type": "application/json",
           "x-goog-api-key": apiKey,
         },
-        
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: message }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1000,
+          },
+        }),
+      },
+    );
+
+    
