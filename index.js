@@ -54,4 +54,75 @@ app.post("/api/chat", async (req, res) => {
       },
     );
 
-    
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Gemini API Error:", errorData);
+      return res.status(response.status).json({
+        error: "Gagal memanggil Gemini API",
+        details: errorData,
+      });
+    }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+
+        if (!trimmedLine || !trimmedLine.startsWith("data:")) {
+          continue;
+        }
+
+        const data = trimmedLine.slice(5).trim();
+        if (data === "[DONE]") {
+          continue;
+        }
+
+        try {
+          const json = JSON.parse(data);
+          const content = json.candidates?.[0]?.content?.parts
+            ?.map((part) => part.text || "")
+            .join("");
+          if (content) {
+            res.write(`data: ${JSON.stringify({ content })}\n\n`);
+          }
+        } catch (error) {
+          console.error("Gagal parsing streaming data dari Gemini:", error);
+        }
+      }
+    }
+
+    res.write("data: [DONE]\n\n");
+    res.end();
+  } catch (error) {
+    console.error("Server Error:", error);
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        error: "Terjadi kesalahan pada server",
+      });
+    }
+
+    res.write(`data: ${JSON.stringify({ error: "Terjadi kesalahan pada server" })}\n\n`);
+    res.end();
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`server berjalan di http://localhost:${PORT}`);
+});
